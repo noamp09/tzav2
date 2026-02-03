@@ -3,38 +3,582 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>עגלה + גלגלת + משקולת + קפיץ (דינמיקה/קינמטיקה)</title>
+  <title>חוט + שני קפיצים + שתי עגלות — סימולציה עם משימה</title>
   <style>
     :root { color-scheme: dark; }
     body { margin:0; font-family: Arial, sans-serif; direction: rtl; background:#0b0f14; color:#e8edf2; }
-    header { padding:12px 14px; background:#0d131b; border-bottom:1px solid #1c2633; position:sticky; top:0; }
+    header { padding:12px 14px; background:#0d131b; border-bottom:1px solid #1c2633; position:sticky; top:0; z-index:5; }
     h1 { margin:0; font-size:18px; }
     .wrap { display:flex; gap:12px; padding:12px; }
-    .panel { width:360px; min-width:320px; background:#0d131b; border:1px solid #1c2633; border-radius:12px; padding:12px; }
+    .panel { width:380px; min-width:340px; background:#0d131b; border:1px solid #1c2633; border-radius:12px; padding:12px; }
     canvas { flex:1; background: radial-gradient(1000px 600px at 30% 25%, #0f1825 0%, #070a0e 60%, #050608 100%);
              border:1px solid #1c2633; border-radius:12px; }
     .row { display:flex; align-items:center; gap:10px; margin:8px 0; }
     .row label { flex:1; font-size:13px; opacity:.9; }
     .row input[type="range"] { flex:1.1; }
-    .row .val { width:74px; text-align:left; font-variant-numeric: tabular-nums; opacity:.9; }
+    .row .val { width:82px; text-align:left; font-variant-numeric: tabular-nums; opacity:.9; }
     button { cursor:pointer; border:1px solid #263449; background:#101a26; color:#e8edf2; padding:8px 10px; border-radius:10px; }
     button:hover { background:#122033; }
     .btns { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     .hint { font-size:12px; opacity:.82; line-height:1.35; margin-top:10px; }
     .box { margin-top:10px; padding:10px; border:1px solid #1c2633; border-radius:10px; background:#0a1017; font-size:12px; }
+    .log { margin-top:10px; padding:10px; border:1px solid #1c2633; border-radius:10px; background:#0a1017; font-size:12px; height:120px; overflow:auto; }
     .pill { display:inline-block; padding:2px 8px; border:1px solid #263449; border-radius:999px; font-size:12px; opacity:.9; }
+    .kbd { display:inline-block; padding:1px 6px; border:1px solid #2b3a52; border-radius:6px; background:#0f1a28; font-size:12px; }
   </style>
 </head>
 <body>
 <header>
-  <h1>🧵🌀 עגלה על מסילה + חוט/גלגלת + משקולת + קפיץ</h1>
+  <h1>🧵🌀 שתי עגלות + שני קפיצים + חוט/גלגלת — “משימת בטיחות”</h1>
 </header>
 
 <div class="wrap">
   <div class="panel">
-    <div class="row"><span class="pill">מה קורה פה?</span></div>
+    <div class="row"><span class="pill">המשימה</span></div>
     <div class="hint">
-      העגלה (m₁) מחוברת לקפיץ לקיר. העגלה מחוברת בחוט לגלגלת ומשם למשקולת תלויה (m₂).
+      שמור את <b>עגלה 2</b> בתוך האזור הירוק למשך <b>20 שניות</b> בלי שהמשקולת תגיע לתחתית.
+      יש לך מנוע חלש על עגלה 2: <span class="kbd">A</span>/<span class="kbd">D</span>, וגם אפשר לגרור עגלות עם העכבר.
+    </div>
+
+    <hr style="border:none;border-top:1px solid #1c2633;margin:12px 0;">
+
+    <div class="row"><label>m₁ (עגלה 1)</label><input id="m1" type="range" min="0.5" max="12" value="3.5" step="0.1"><div class="val" id="m1Val"></div></div>
+    <div class="row"><label>m₂ (משקולת)</label><input id="m2" type="range" min="0.2" max="10" value="2.6" step="0.1"><div class="val" id="m2Val"></div></div>
+    <div class="row"><label>m₃ (עגלה 2)</label><input id="m3" type="range" min="0.5" max="14" value="5.0" step="0.1"><div class="val" id="m3Val"></div></div>
+
+    <hr style="border:none;border-top:1px solid #1c2633;margin:12px 0;">
+
+    <div class="row"><label>k₁ קפיץ לקיר</label><input id="k1" type="range" min="10" max="1200" value="260" step="1"><div class="val" id="k1Val"></div></div>
+    <div class="row"><label>k₂ קפיץ בין עגלות</label><input id="k2" type="range" min="10" max="1200" value="360" step="1"><div class="val" id="k2Val"></div></div>
+    <div class="row"><label>ריסון c₁ (עגלה 1)</label><input id="c1" type="range" min="0" max="18" value="1.4" step="0.1"><div class="val" id="c1Val"></div></div>
+    <div class="row"><label>ריסון c₂ (עגלה 2)</label><input id="c2" type="range" min="0" max="18" value="2.0" step="0.1"><div class="val" id="c2Val"></div></div>
+
+    <div class="row"><label>מנוע (כוח על עגלה 2)</label><input id="motor" type="range" min="0" max="2400" value="900" step="10"><div class="val" id="motorVal"></div></div>
+    <div class="row"><label>כבידה אחידה g</label><input id="g" type="range" min="0" max="1800" value="900" step="10"><div class="val" id="gVal"></div></div>
+
+    <hr style="border:none;border-top:1px solid #1c2633;margin:12px 0;">
+
+    <div class="btns">
+      <button id="playPause">⏸️ עצור</button>
+      <button id="reset">↩️ איפוס</button>
+      <button id="randomEvent">🎲 אירוע אקראי</button>
+      <button id="zeroV">v=0</button>
+    </div>
+
+    <div class="box" id="readout"></div>
+    <div class="log" id="log"></div>
+
+    <div class="hint">
+      <b>טיפים:</b> כוונן k₂ כדי לשלוט ב"העברת אנרגיה" בין העגלות. כש-k₂ גבוה, כל המערכת נהיית "קשיחה" ומעבירה מכות.
+    </div>
+  </div>
+
+  <canvas id="cvs" width="1150" height="740"></canvas>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('cvs');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const ui = {
+    m1: el('m1'), m2: el('m2'), m3: el('m3'),
+    k1: el('k1'), k2: el('k2'),
+    c1: el('c1'), c2: el('c2'),
+    motor: el('motor'), g: el('g'),
+    m1Val: el('m1Val'), m2Val: el('m2Val'), m3Val: el('m3Val'),
+    k1Val: el('k1Val'), k2Val: el('k2Val'),
+    c1Val: el('c1Val'), c2Val: el('c2Val'),
+    motorVal: el('motorVal'), gVal: el('gVal'),
+    readout: el('readout'),
+    log: el('log'),
+  };
+  function el(id){ return document.getElementById(id); }
+  const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+  const rand = (a,b)=>a + Math.random()*(b-a);
+
+  function refresh(){
+    ui.m1Val.textContent = (+ui.m1.value).toFixed(1);
+    ui.m2Val.textContent = (+ui.m2.value).toFixed(1);
+    ui.m3Val.textContent = (+ui.m3.value).toFixed(1);
+    ui.k1Val.textContent = (+ui.k1.value).toFixed(0);
+    ui.k2Val.textContent = (+ui.k2.value).toFixed(0);
+    ui.c1Val.textContent = (+ui.c1.value).toFixed(1);
+    ui.c2Val.textContent = (+ui.c2.value).toFixed(1);
+    ui.motorVal.textContent = (+ui.motor.value).toFixed(0);
+    ui.gVal.textContent = (+ui.g.value).toFixed(0);
+  }
+  ['input','change'].forEach(ev=>{
+    [ui.m1,ui.m2,ui.m3,ui.k1,ui.k2,ui.c1,ui.c2,ui.motor,ui.g].forEach(x=>x.addEventListener(ev, refresh));
+  });
+  refresh();
+
+  // Scene geometry
+  const trackY = H*0.62;
+  const leftWallX = W*0.10;
+  const rightStopX = W*0.92;
+
+  const pulleyX = W*0.78;
+  const pulleyY = H*0.30;
+
+  const cartW = 140, cartH = 72;
+  const massW = 62, massH = 62;
+
+  // State: x1, x2 along track (px). Rope couples x1 with hanging motion.
+  let x1=0, v1=0, a1=0;
+  let x2=160, v2=0, a2=0;
+
+  // Reference positions
+  const baseX1 = W*0.38;
+  const baseX2 = W*0.58;
+
+  // Soft end stops
+  const x1Min = -260, x1Max = 230;
+  const x2Min = -260, x2Max = 260;
+
+  // Spring between carts has rest separation
+  let rest12 = 180;
+
+  // Hanging mass "depth" mapping from x1 (visual only, monotonic)
+  const hangTop = pulleyY + 30;
+  const hangScale = 0.90;
+  const hangFloor = H*0.86; // fail if reaches near this
+
+  // Mission: keep cart2 in safe zone for 20s
+  const safeCenter = baseX2 + 40;
+  const safeHalfWidth = 80;
+  const targetTime = 20.0;
+  let survival = 0;
+  let failed = false;
+  let running = true;
+
+  // Log
+  function log(msg){
+    const t = new Date().toLocaleTimeString('he-IL');
+    ui.log.innerHTML = `<div>⏱️ ${t} — ${msg}</div>` + ui.log.innerHTML;
+  }
+  log('✅ התחל. נסו לשמור את עגלה 2 בתוך האזור הירוק 20 שניות.');
+
+  // Keyboard motor control (on cart2)
+  const keys = { a:false, d:false };
+  window.addEventListener('keydown', (e)=>{
+    if (e.key === 'a' || e.key === 'A') keys.a = true;
+    if (e.key === 'd' || e.key === 'D') keys.d = true;
+  });
+  window.addEventListener('keyup', (e)=>{
+    if (e.key === 'a' || e.key === 'A') keys.a = false;
+    if (e.key === 'd' || e.key === 'D') keys.d = false;
+  });
+
+  // Mouse drag carts
+  const mouse = {x:0,y:0, down:false, drag:null};
+  canvas.addEventListener('mousemove', (e)=>{
+    const r = canvas.getBoundingClientRect();
+    mouse.x = (e.clientX - r.left) * (canvas.width / r.width);
+    mouse.y = (e.clientY - r.top)  * (canvas.height / r.height);
+  });
+  canvas.addEventListener('mousedown', ()=>{
+    mouse.down = true;
+    const c1 = cartRect(1);
+    const c2 = cartRect(2);
+    if (pointInRect(mouse.x, mouse.y, c2)) mouse.drag = 2;
+    else if (pointInRect(mouse.x, mouse.y, c1)) mouse.drag = 1;
+  });
+  window.addEventListener('mouseup', ()=>{
+    mouse.down = false;
+    mouse.drag = null;
+  });
+
+  function cartRect(i){
+    const cx = (i===1 ? baseX1 + x1 : baseX2 + x2);
+    const cy = trackY - cartH;
+    return { x: cx-cartW/2, y: cy, w: cartW, h: cartH };
+  }
+  function pointInRect(px,py,r){
+    return px>=r.x && px<=r.x+r.w && py>=r.y && py<=r.y+r.h;
+  }
+
+  // Buttons
+  document.getElementById('playPause').addEventListener('click', (e)=>{
+    running = !running;
+    e.target.textContent = running ? '⏸️ עצור' : '▶️ הפעל';
+  });
+  document.getElementById('zeroV').addEventListener('click', ()=>{
+    v1=0; v2=0;
+  });
+  document.getElementById('reset').addEventListener('click', ()=>{
+    x1=0; v1=0;
+    x2=160; v2=0;
+    survival=0;
+    failed=false;
+    log('↩️ איפוס משימה.');
+  });
+  document.getElementById('randomEvent').addEventListener('click', ()=>{
+    randomEvent();
+  });
+
+  function randomEvent(){
+    const r = Math.random();
+    if (r < 0.33){
+      // sudden extra load on m2
+      ui.m2.value = (+ui.m2.value + rand(0.3, 1.2)).toFixed(1);
+      refresh();
+      log('🎲 אירוע: העמיסו פתאום את המשקולת (m₂ גדל).');
+    } else if (r < 0.66){
+      // loosen coupling spring
+      ui.k2.value = Math.max(10, +ui.k2.value - rand(80, 220)).toFixed(0);
+      refresh();
+      log('🎲 אירוע: קפיץ בין העגלות נחלש (k₂ ירד).');
+    } else {
+      // change rest separation (like someone moved attachment point)
+      rest12 = clamp(rest12 + rand(-60, 60), 120, 260);
+      log(`🎲 אירוע: נקודת החיבור בין העגלות זזה. מרחק מנוחה חדש: ${rest12.toFixed(0)}px.`);
+    }
+  }
+
+  // Physics:
+  // Rope implies hanging mass moves with x1 => effective inertia added to cart1: m1 + m2.
+  // Forces on cart1:
+  //   + m2*g  (pulling to +x1)
+  //   - k1*(x1 - x0)  (spring to wall; x0 assumed 0 for now)
+  //   - c1*v1
+  //   + coupling from spring between carts: F12 on cart1
+  //
+  // Forces on cart2:
+  //   - c2*v2
+  //   - F12 (equal and opposite)
+  //   + motor force from A/D
+  //
+  // Spring between carts: based on separation s = (pos2 - pos1). rest = rest12.
+  //   F = k2*(s - rest)  pushing cart2 right if stretched etc.
+  //
+  function step(dt){
+    const m1 = +ui.m1.value, m2 = +ui.m2.value, m3 = +ui.m3.value;
+    const k1 = +ui.k1.value, k2 = +ui.k2.value;
+    const c1 = +ui.c1.value, c2 = +ui.c2.value;
+    const g  = +ui.g.value;
+    const motor = +ui.motor.value;
+
+    // Dragging sets positions directly
+    if (mouse.drag === 1){
+      x1 = clamp(mouse.x - baseX1, x1Min, x1Max);
+      v1 = 0;
+    } else if (mouse.drag === 2){
+      x2 = clamp(mouse.x - baseX2, x2Min, x2Max);
+      v2 = 0;
+    }
+
+    // Positions along track
+    const p1 = x1;
+    const p2 = x2;
+
+    // Coupling spring force
+    const s = ( (baseX2 + p2) - (baseX1 + p1) ); // world separation
+    const stretch = s - rest12;
+    const Fspring12 = k2 * stretch; // acts to increase separation if stretched
+    // On cart2: force = -Fspring12 (because if s>rest, cart2 should be pulled left)
+    const F_on_2 = -Fspring12;
+    const F_on_1 = +Fspring12;
+
+    // Wall spring on cart1 (rest at x1=0)
+    const Fwall = -k1 * (p1 - 0);
+
+    // Gravity pull via hanging mass (constant field on m2)
+    const Fg = m2 * g; // pulls cart1 to +x
+
+    // Damping
+    const Fd1 = -c1 * v1;
+    const Fd2 = -c2 * v2;
+
+    // Motor control on cart2
+    let Fmotor = 0;
+    if (keys.a) Fmotor -= motor;
+    if (keys.d) Fmotor += motor;
+
+    // Net forces
+    const F1 = Fg + Fwall + Fd1 + F_on_1;
+    const F2 = Fd2 + F_on_2 + Fmotor;
+
+    // Effective mass for cart1 includes hanging mass inertia
+    const M1 = m1 + m2;
+
+    // Accelerations
+    a1 = F1 / M1;
+    a2 = F2 / m3;
+
+    // Semi-implicit Euler
+    if (!mouse.drag){ // if not dragging, integrate normally
+      v1 += a1 * dt;
+      x1 += v1 * dt;
+
+      v2 += a2 * dt;
+      x2 += v2 * dt;
+    } else {
+      // if dragging one cart, still integrate the other
+      if (mouse.drag === 1){
+        v2 += a2 * dt;
+        x2 += v2 * dt;
+      } else if (mouse.drag === 2){
+        v1 += a1 * dt;
+        x1 += v1 * dt;
+      }
+    }
+
+    // End stops (bounce)
+    if (x1 < x1Min){ x1 = x1Min; v1 *= -0.25; }
+    if (x1 > x1Max){ x1 = x1Max; v1 *= -0.25; }
+    if (x2 < x2Min){ x2 = x2Min; v2 *= -0.25; }
+    if (x2 > x2Max){ x2 = x2Max; v2 *= -0.25; }
+
+    // Prevent carts overlapping too much (simple collision-ish)
+    const c1x = baseX1 + x1;
+    const c2x = baseX2 + x2;
+    const minSep = cartW * 0.90;
+    if (c2x - c1x < minSep){
+      const mid = (c1x + c2x)/2;
+      const newC1 = mid - minSep/2;
+      const newC2 = mid + minSep/2;
+      x1 = clamp(newC1 - baseX1, x1Min, x1Max);
+      x2 = clamp(newC2 - baseX2, x2Min, x2Max);
+      // exchange some velocity
+      const temp = v1;
+      v1 = v2 * 0.7;
+      v2 = temp * 0.7;
+    }
+  }
+
+  // Mission logic
+  function updateMission(dt){
+    if (failed) return;
+
+    const cart2X = baseX2 + x2;
+    const inSafe = (cart2X >= safeCenter - safeHalfWidth) && (cart2X <= safeCenter + safeHalfWidth);
+
+    const hangY = hangingY();
+    const hitFloor = (hangY + massH >= hangFloor);
+
+    if (hitFloor){
+      failed = true;
+      log('❌ כשל: המשקולת הגיעה לתחתית.');
+      return;
+    }
+
+    if (inSafe){
+      survival += dt;
+      if (survival >= targetTime){
+        failed = true; // stop further counting; treat as success state
+        log('✅ הצלחה! שמרתם על עגלה 2 באזור הבטיחות 20 שניות.');
+      }
+    } else {
+      // decay instead of reset to make it more "gamey"
+      survival = Math.max(0, survival - dt*1.5);
+    }
+  }
+
+  function hangingY(){
+    // visual: y increases with x1; scaled, plus baseline
+    const y = hangTop + (x1 - x1Min) * hangScale;
+    return y;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // background specks
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    for (let i=0;i<140;i++){
+      ctx.fillRect((i*97)%W, (i*211)%H, 1, 1);
+    }
+    ctx.restore();
+
+    // Track
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(leftWallX, trackY);
+    ctx.lineTo(rightStopX, trackY);
+    ctx.stroke();
+
+    // Right stop bumper
+    ctx.fillStyle = 'rgba(255,80,80,0.18)';
+    ctx.fillRect(rightStopX, trackY-120, 12, 140);
+
+    // Wall
+    ctx.fillStyle = 'rgba(180,200,220,0.25)';
+    ctx.fillRect(leftWallX-12, trackY-120, 12, 140);
+
+    // Safe zone for cart2
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = 'rgba(80,255,160,1)';
+    ctx.fillRect(safeCenter - safeHalfWidth, trackY-180, safeHalfWidth*2, 220);
+    ctx.restore();
+
+    // Pulley
+    ctx.beginPath();
+    ctx.arc(pulleyX, pulleyY, 26, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(160,180,200,0.18)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Positions
+    const c1x = baseX1 + x1, c1y = trackY - cartH;
+    const c2x = baseX2 + x2, c2y = trackY - cartH;
+    const hy = hangingY();
+
+    // Rope (cart1 -> pulley -> mass)
+    ctx.strokeStyle = 'rgba(230,230,230,0.75)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(c1x, c1y+10);
+    ctx.lineTo(pulleyX, pulleyY+4);
+    ctx.lineTo(pulleyX, hy);
+    ctx.stroke();
+
+    // Spring wall->cart1
+    drawSpring(leftWallX, trackY-45, c1x - cartW/2, trackY-45, 14, 10, 'rgba(180,220,255,0.75)');
+
+    // Spring cart1->cart2
+    drawSpring(c1x + cartW/2, trackY-45, c2x - cartW/2, trackY-45, 12, 8, 'rgba(255,190,90,0.65)');
+
+    // Draw carts
+    drawCart(c1x, c1y, 'm₁', 'rgba(255,190,90,0.90)', mouse.drag===1);
+    drawCart(c2x, c2y, 'm₃', 'rgba(120,200,255,0.88)', mouse.drag===2);
+
+    // Hanging mass
+    roundRect(pulleyX - massW/2, hy, massW, massH, 12, 'rgba(200,120,255,0.80)', 'rgba(255,255,255,0.22)');
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('m₂', pulleyX, hy + 38);
+
+    // Floor marker (fail line)
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,80,80,0.35)';
+    ctx.setLineDash([10,7]);
+    ctx.beginPath();
+    ctx.moveTo(pulleyX-140, hangFloor);
+    ctx.lineTo(pulleyX+140, hangFloor);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // HUD
+    const hangYBottom = hy + massH;
+    const inSafe = (c2x >= safeCenter - safeHalfWidth) && (c2x <= safeCenter + safeHalfWidth);
+
+    ui.readout.innerHTML =
+      `<b>משימה</b><br>` +
+      `זמן באזור בטיחות: <b>${survival.toFixed(1)} / ${targetTime.toFixed(0)}s</b> ` +
+      `| מצב: ${failed ? (survival>=targetTime ? '✅ הצלחה' : '❌ כשל') : (inSafe ? '🟢 בתוך' : '🟡 מחוץ')}<br>` +
+      `גובה משקולת: ${(hangFloor - hangYBottom).toFixed(0)}px מעל קו כשל<br><br>` +
+      `<b>קינמטיקה</b><br>` +
+      `עגלה 1: x₁=${x1.toFixed(1)} v₁=${v1.toFixed(1)} a₁=${a1.toFixed(1)}<br>` +
+      `עגלה 2: x₂=${x2.toFixed(1)} v₂=${v2.toFixed(1)} a₂=${a2.toFixed(1)}<br><br>` +
+      `<b>שליטה</b> מנוע: ${keys.a||keys.d ? 'פועל' : 'כבוי'} (A/D)`;
+
+    // overlay when success/fail
+    if (failed){
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.font = '34px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(survival>=targetTime ? '✅ הצלחה!' : '❌ כשל', W/2, H/2 - 10);
+      ctx.font = '16px Arial';
+      ctx.fillText('לחץ איפוס כדי לנסות שוב או שנה פרמטרים', W/2, H/2 + 22);
+      ctx.restore();
+    }
+  }
+
+  function drawCart(cx, cy, label, fill, highlight){
+    ctx.save();
+    if (highlight){
+      ctx.shadowColor = 'rgba(130,220,255,0.7)';
+      ctx.shadowBlur = 18;
+    }
+    roundRect(cx - cartW/2, cy, cartW, cartH, 14, fill, 'rgba(255,255,255,0.22)');
+    // wheels
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.arc(cx - 45, cy + cartH + 10, 14, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 45, cy + cartH + 10, 14, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, cx, cy + 42);
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r,fill,stroke){
+    ctx.beginPath();
+    const rr = Math.min(r, w/2, h/2);
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);
+    ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);
+    ctx.arcTo(x,y,x+w,y,rr);
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  function drawSpring(x1,y1,x2,y2,coils,amp,color){
+    const dx = x2-x1, dy=y2-y1;
+    const len = Math.max(1e-6, Math.hypot(dx,dy));
+    const nx = dx/len, ny = dy/len;
+    const px = -ny, py = nx;
+
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+
+    const start = 10, end = 10;
+    const usable = Math.max(1, len - start - end);
+    for (let i=0; i<=coils; i++){
+      const t = i / coils;
+      const along = start + t*usable;
+      const zig = (i%2===0 ? -1 : 1) * amp;
+      const sx = x1 + nx*along + px*zig;
+      const sy = y1 + ny*along + py*zig;
+      ctx.lineTo(sx,sy);
+    }
+    ctx.lineTo(x2,y2);
+    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+  }
+
+  // Loop
+  let last = performance.now();
+  function frame(t){
+    const dtRaw = (t-last)/1000;
+    last = t;
+    const dt = clamp(dtRaw, 0, 0.03);
+
+    if (running && !failed){
+      // substeps for stability
+      const sub = 5;
+      const h = dt/sub;
+      for (let i=0;i<sub;i++){
+        step(h);
+        updateMission(h);
+      }
+    }
+
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>      העגלה (m₁) מחוברת לקפיץ לקיר. העגלה מחוברת בחוט לגלגלת ומשם למשקולת תלויה (m₂).
       אם העגלה זזה ימינה ב־x → המשקולת יורדת ב־x (קשר קינמטי של חוט אידאלי).
     </div>
 
