@@ -3,38 +3,384 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>תחנה נטושה — סימולציה פיזיקלית דו־מימד</title>
+  <title>סימולציית חוט + קפיץ (קינמטיקה/דינמיקה)</title>
   <style>
     :root { color-scheme: dark; }
-    body { margin: 0; font-family: Arial, sans-serif; direction: rtl; background:#0b0f14; color:#e8edf2; }
-    header { padding: 12px 14px; border-bottom: 1px solid #1c2633; background:#0d131b; position: sticky; top:0; z-index:5; }
-    h1 { margin:0; font-size: 18px; }
+    body { margin:0; font-family: Arial, sans-serif; direction: rtl; background:#0b0f14; color:#e8edf2; }
+    header { padding:12px 14px; background:#0d131b; border-bottom:1px solid #1c2633; }
+    h1 { margin:0; font-size:18px; }
     .wrap { display:flex; gap:12px; padding:12px; }
-    .panel { width: 360px; min-width: 320px; background:#0d131b; border:1px solid #1c2633; border-radius: 12px; padding:12px; }
+    .panel { width:360px; min-width:320px; background:#0d131b; border:1px solid #1c2633; border-radius:12px; padding:12px; }
+    canvas { flex:1; background: radial-gradient(900px 500px at 30% 25%, #0f1825 0%, #070a0e 60%, #050608 100%);
+             border:1px solid #1c2633; border-radius:12px; }
     .row { display:flex; align-items:center; gap:10px; margin:8px 0; }
-    .row label { flex:1; font-size: 13px; opacity:0.9; }
-    .row input[type="range"] { flex:1.2; }
-    .row .val { width:72px; text-align:left; font-variant-numeric: tabular-nums; opacity:0.9; }
+    .row label { flex:1; font-size:13px; opacity:.9; }
+    .row input[type="range"] { flex:1.1; }
+    .row .val { width:74px; text-align:left; font-variant-numeric: tabular-nums; opacity:.9; }
     button { cursor:pointer; border:1px solid #263449; background:#101a26; color:#e8edf2; padding:8px 10px; border-radius:10px; }
     button:hover { background:#122033; }
-    .btns { display:flex; gap:10px; flex-wrap: wrap; }
-    canvas { flex:1; background: radial-gradient(1200px 500px at 30% 30%, #0f1825 0%, #070a0e 60%, #050608 100%); border:1px solid #1c2633; border-radius: 12px; }
-    .hint { font-size: 12px; opacity: 0.8; line-height: 1.35; margin-top: 10px;}
-    .log { margin-top: 10px; padding:10px; border:1px solid #1c2633; border-radius: 10px; background:#0a1017; font-size:12px; height:120px; overflow:auto; }
-    .pill { display:inline-block; padding:2px 8px; border:1px solid #263449; border-radius: 999px; font-size:12px; opacity:0.9; }
+    .btns { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    .hint { font-size:12px; opacity:.82; line-height:1.35; margin-top:10px; }
+    .pill { display:inline-block; padding:2px 8px; border:1px solid #263449; border-radius:999px; font-size:12px; opacity:.9; }
   </style>
 </head>
 <body>
 <header>
-  <h1>🛰️ התחנה הנטושה — סימולציה פיזיקלית (2D)</h1>
+  <h1>🧵🌀 חוט + קפיץ — סימולציית קינמטיקה/דינמיקה (2D)</h1>
 </header>
 
 <div class="wrap">
   <div class="panel">
-    <div class="row"><span class="pill">סיפור</span></div>
+    <div class="row"><span class="pill">מה רואים פה?</span></div>
     <div class="hint">
-      אתם מגיעים לתחנת מחקר נטושה. מודולים מחוברים במחברים. לחץ אוויר דולף → נוצר דחף → התחנה מסתחררת,
-      עומסים גדלים → מחברים נשברים. אין “סקריפט”: הסיפור יוצא מהפיזיקה.
+      מסה מחוברת לנקודת תלייה. יש <b>חוט</b> (אורך קבוע) + <b>קפיץ</b> (חוק הוק).
+      גוררים עם העכבר ומשחררים. משנים פרמטרים בזמן אמת.
+    </div>
+
+    <hr style="border:none;border-top:1px solid #1c2633;margin:12px 0;">
+
+    <div class="row">
+      <label>אורך חוט (px)</label>
+      <input id="ropeLen" type="range" min="120" max="420" value="280" step="1">
+      <div class="val" id="ropeLenVal"></div>
+    </div>
+
+    <div class="row">
+      <label>אורך טבעי של הקפיץ (px)</label>
+      <input id="springRest" type="range" min="60" max="360" value="220" step="1">
+      <div class="val" id="springRestVal"></div>
+    </div>
+
+    <div class="row">
+      <label>קבוע קפיץ k</label>
+      <input id="k" type="range" min="20" max="900" value="260" step="1">
+      <div class="val" id="kVal"></div>
+    </div>
+
+    <div class="row">
+      <label>מסה m</label>
+      <input id="m" type="range" min="0.5" max="10" value="3" step="0.1">
+      <div class="val" id="mVal"></div>
+    </div>
+
+    <div class="row">
+      <label>שיכוך (דאמפינג)</label>
+      <input id="damp" type="range" min="0" max="6" value="1.5" step="0.05">
+      <div class="val" id="dampVal"></div>
+    </div>
+
+    <div class="row">
+      <label>כבידה אחידה g</label>
+      <input id="g" type="range" min="0" max="1500" value="900" step="10">
+      <div class="val" id="gVal"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #1c2633;margin:12px 0;">
+
+    <div class="btns">
+      <button id="toggleSpring">כבה/הדלק קפיץ</button>
+      <button id="reset">איפוס</button>
+    </div>
+
+    <div class="hint">
+      <b>שליטה:</b><br>
+      • גרור את המסה עם העכבר ושחרר.<br>
+      • החוט שומר מרחק קבוע לנקודת התלייה (Constraint).<br>
+      • הקפיץ מפעיל כוח: F = -k(x - x0).<br>
+      • הכבידה כאן היא <u>שדה קבוע</u> (לא “משיכה בין גופים”).
+    </div>
+  </div>
+
+  <canvas id="c" width="1100" height="720"></canvas>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const ui = {
+    ropeLen: document.getElementById('ropeLen'),
+    springRest: document.getElementById('springRest'),
+    k: document.getElementById('k'),
+    m: document.getElementById('m'),
+    damp: document.getElementById('damp'),
+    g: document.getElementById('g'),
+    ropeLenVal: document.getElementById('ropeLenVal'),
+    springRestVal: document.getElementById('springRestVal'),
+    kVal: document.getElementById('kVal'),
+    mVal: document.getElementById('mVal'),
+    dampVal: document.getElementById('dampVal'),
+    gVal: document.getElementById('gVal'),
+  };
+
+  const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+
+  function refresh(){
+    ui.ropeLenVal.textContent = (+ui.ropeLen.value).toFixed(0);
+    ui.springRestVal.textContent = (+ui.springRest.value).toFixed(0);
+    ui.kVal.textContent = (+ui.k.value).toFixed(0);
+    ui.mVal.textContent = (+ui.m.value).toFixed(1);
+    ui.dampVal.textContent = (+ui.damp.value).toFixed(2);
+    ui.gVal.textContent = (+ui.g.value).toFixed(0);
+  }
+  ['input','change'].forEach(ev=>{
+    Object.values(ui).forEach(el=>{
+      if (el && el.tagName === 'INPUT') el.addEventListener(ev, refresh);
+    });
+  });
+  refresh();
+
+  // --- Physics (Verlet integration + constraint solve) ---
+  // Using Verlet makes constraints (rope) stable and "physical" for simple systems.
+  const anchor = { x: W*0.5, y: H*0.18 };
+
+  const mass = {
+    x: W*0.5 + 180,
+    y: H*0.18 + 240,
+    px: 0,
+    py: 0,
+    ax: 0,
+    ay: 0,
+    radius: 18,
+  };
+
+  function reset(){
+    mass.x = W*0.5 + 170;
+    mass.y = H*0.18 + 260;
+    mass.px = mass.x - 30; // gives initial velocity
+    mass.py = mass.y + 10;
+  }
+
+  reset();
+
+  // Dragging
+  const mouse = { x:0, y:0, down:false, dragging:false };
+
+  canvas.addEventListener('mousemove', (e)=>{
+    const r = canvas.getBoundingClientRect();
+    mouse.x = (e.clientX - r.left) * (canvas.width / r.width);
+    mouse.y = (e.clientY - r.top)  * (canvas.height / r.height);
+  });
+  canvas.addEventListener('mousedown', ()=>{
+    mouse.down = true;
+    const dx = mouse.x - mass.x, dy = mouse.y - mass.y;
+    if (dx*dx + dy*dy <= (mass.radius+10)*(mass.radius+10)){
+      mouse.dragging = true;
+    }
+  });
+  window.addEventListener('mouseup', ()=>{
+    mouse.down = false;
+    mouse.dragging = false;
+  });
+
+  let springEnabled = true;
+  document.getElementById('toggleSpring').addEventListener('click', ()=>{
+    springEnabled = !springEnabled;
+  });
+  document.getElementById('reset').addEventListener('click', reset);
+
+  function applyForces(dt){
+    const m = +ui.m.value;
+    const g = +ui.g.value;
+    const damp = +ui.damp.value;
+
+    // reset accel
+    mass.ax = 0;
+    mass.ay = 0;
+
+    // Gravity (uniform field, not attraction between masses)
+    mass.ay += g;
+
+    // Damping (approx as velocity-proportional: v ≈ x - px)
+    const vx = (mass.x - mass.px) / dt;
+    const vy = (mass.y - mass.py) / dt;
+    mass.ax += (-damp * vx) / m;
+    mass.ay += (-damp * vy) / m;
+
+    // Spring between anchor and mass (optional)
+    if (springEnabled){
+      const k = +ui.k.value;
+      const rest = +ui.springRest.value;
+
+      const dx = mass.x - anchor.x;
+      const dy = mass.y - anchor.y;
+      const dist = Math.max(1e-6, Math.hypot(dx,dy));
+      const nx = dx/dist, ny = dy/dist;
+
+      // Hooke: F = -k (dist - rest) along the direction
+      const stretch = dist - rest;
+      const Fx = -k * stretch * nx;
+      const Fy = -k * stretch * ny;
+
+      mass.ax += Fx / m;
+      mass.ay += Fy / m;
+    }
+  }
+
+  function verlet(dt){
+    // If dragging, override position (like external constraint)
+    if (mouse.dragging){
+      mass.x = mouse.x;
+      mass.y = mouse.y;
+      // keep prev position close to avoid huge velocity jump
+      mass.px = mass.x;
+      mass.py = mass.y;
+      return;
+    }
+
+    const x = mass.x, y = mass.y;
+    const px = mass.px, py = mass.py;
+
+    // Verlet: x_new = x + (x - px) + a*dt^2
+    const nx = x + (x - px) + mass.ax * dt*dt;
+    const ny = y + (y - py) + mass.ay * dt*dt;
+
+    mass.px = x; mass.py = y;
+    mass.x = nx; mass.y = ny;
+  }
+
+  function solveRopeConstraint(){
+    const L = +ui.ropeLen.value;
+
+    const dx = mass.x - anchor.x;
+    const dy = mass.y - anchor.y;
+    const dist = Math.max(1e-6, Math.hypot(dx,dy));
+
+    // Keep distance exactly L
+    const diff = (dist - L) / dist;
+    mass.x -= dx * diff;
+    mass.y -= dy * diff;
+  }
+
+  function softBounds(){
+    // keep on screen nicely
+    const pad = 20;
+    mass.x = clamp(mass.x, pad, W-pad);
+    mass.y = clamp(mass.y, pad, H-pad);
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // Background stars
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    for (let i=0; i<110; i++){
+      const x = (i*97)%W;
+      const y = (i*223)%H;
+      ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.restore();
+
+    // Rope
+    ctx.beginPath();
+    ctx.moveTo(anchor.x, anchor.y);
+    ctx.lineTo(mass.x, mass.y);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(230,230,230,0.75)';
+    ctx.stroke();
+
+    // Spring (visual) if enabled
+    if (springEnabled){
+      drawSpring(anchor.x, anchor.y, mass.x, mass.y, 14, 10);
+    }
+
+    // Anchor
+    ctx.beginPath();
+    ctx.arc(anchor.x, anchor.y, 8, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(120,200,255,0.95)';
+    ctx.fill();
+
+    // Mass
+    ctx.beginPath();
+    ctx.arc(mass.x, mass.y, mass.radius, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,190,90,0.92)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // HUD
+    const dt = lastDt;
+    const vx = (mass.x - mass.px) / dt;
+    const vy = (mass.y - mass.py) / dt;
+    const speed = Math.hypot(vx,vy);
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(12, 12, 520, 68);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`מהירות ≈ ${speed.toFixed(1)} px/s  |  vx=${vx.toFixed(1)}  vy=${vy.toFixed(1)}  |  קפיץ: ${springEnabled ? 'פעיל' : 'כבוי'}`, 22, 38);
+
+    const dx = mass.x - anchor.x, dy = mass.y - anchor.y;
+    const dist = Math.hypot(dx,dy);
+    ctx.fillText(`מרחק מהתלייה: ${dist.toFixed(1)}  |  אורך חוט: ${(+ui.ropeLen.value).toFixed(0)}  |  אורך קפיץ טבעי: ${(+ui.springRest.value).toFixed(0)}`, 22, 60);
+    ctx.restore();
+  }
+
+  function drawSpring(x1,y1,x2,y2,coils,amp){
+    // Simple zig-zag spring drawing
+    const dx = x2-x1, dy=y2-y1;
+    const len = Math.max(1e-6, Math.hypot(dx,dy));
+    const nx = dx/len, ny = dy/len;
+    const px = -ny, py = nx;
+
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+
+    const start = 10;
+    const end = 10;
+    const usable = Math.max(1, len - start - end);
+    for (let i=0; i<=coils; i++){
+      const t = i / coils;
+      const along = start + t*usable;
+      const zig = (i%2===0 ? -1 : 1) * amp;
+      const sx = x1 + nx*along + px*zig;
+      const sy = y1 + ny*along + py*zig;
+      ctx.lineTo(sx,sy);
+    }
+    ctx.lineTo(x2,y2);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(120,200,255,0.75)';
+    ctx.stroke();
+  }
+
+  // Main loop with substeps for stability
+  let last = performance.now();
+  let lastDt = 1/60;
+
+  function frame(t){
+    const dtRaw = (t - last) / 1000;
+    last = t;
+    const dt = clamp(dtRaw, 0.0, 0.03);
+    lastDt = Math.max(1e-4, dt);
+
+    const sub = 4;
+    const h = dt / sub;
+
+    for (let i=0; i<sub; i++){
+      applyForces(h);
+      verlet(h);
+
+      // Solve rope constraint multiple times (more = stiffer rope)
+      for (let k=0; k<5; k++) solveRopeConstraint();
+
+      softBounds();
+    }
+
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>      עומסים גדלים → מחברים נשברים. אין “סקריפט”: הסיפור יוצא מהפיזיקה.
     </div>
 
     <hr style="border:none;border-top:1px solid #1c2633;margin:12px 0;">
